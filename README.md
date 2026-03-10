@@ -71,6 +71,31 @@ The app will be available at: `http://localhost:5000`
 - `static/`: Static assets (CSS, JS, Images, PWA manifest).
 - `utils/`: Helper functions for PDF generation and Emailing.
 
+## ☁️ Render Deployment
+
+To deploy MNNMP Events on **Render**, follow these steps:
+
+### 1. Connect Repository
+- Create a new **Web Service** on Render and connect your GitHub repository.
+
+### 2. Configure Settings
+The project includes a `render.yaml` file that automatically configures most settings. If you prefer manual setup:
+- **Build Command**: `pip install -r requirements.txt`
+- **Start Command**: `gunicorn app:app`
+
+### 3. Environment Variables
+Add the following in the Render dashboard:
+- `SECRET_KEY`: (Auto-generated or your own)
+- `MAIL_USERNAME`: your-email@gmail.com
+- `MAIL_PASSWORD`: your-app-password
+- `MAIL_DEFAULT_SENDER`: MNNMP Events <your-email@gmail.com>
+
+### 4. Persistent Disk (Crucial for SQLite)
+To keep your event data safe during updates:
+- Add a **Disk** to your service.
+- **Mount Path**: `/opt/render/project/src/instance`
+- **Size**: 1GB is sufficient for the database.
+
 ## 📱 PWA Instructions
 To install the app on your device:
 1. Open the app in a modern browser (Chrome/Edge/Safari).
