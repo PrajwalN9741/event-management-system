@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+{% block title %}Login – EMS{% endblock %}
+
+{% block auth_content %}
+<div class="auth-card-wrapper">
+    <div class="auth-card">
+        <div class="auth-logo">
+            <i class="bi bi-calendar-event-fill"></i>
+        </div>
+        <h2 class="auth-title">Welcome Back</h2>
+        <p class="auth-subtitle">Sign in to your EMS account</p>
+
+        <form method="POST" action="{{ url_for('auth.login') }}" id="loginForm" novalidate>
+            <div class="mb-3">
+                <label for="email" class="form-label">Email Address</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                    <input type="email" id="email" name="email" class="form-control" placeholder="you@example.com"
+                        required autofocus />
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="password" class="form-label">Password</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                    <input type="password" id="password" name="password" class="form-control" placeholder="••••••••"
+                        required minlength="6" />
+                    <button class="btn btn-outline-secondary" type="button" id="togglePwd">
+                        <i class="bi bi-eye"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="remember" name="remember" />
+                    <label class="form-check-label small" for="remember">Remember me</label>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100 btn-lg">
+                <i class="bi bi-box-arrow-in-right me-2"></i>Sign In
+            </button>
+        </form>
+
+        <div class="auth-divider">or</div>
+        <p class="text-center text-muted small">
+            Don't have an account?
+            <a href="{{ url_for('auth.register') }}" class="fw-semibold">Register here</a>
+        </p>
+        <p class="text-center text-muted small mt-2">
+            Default admin: <code>admin@ems.local</code> / <code>Admin@123</code>
+        </p>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.getElementById('togglePwd').addEventListener('click', function () {
+        const pwd = document.getElementById('password');
+        const icon = this.querySelector('i');
+        if (pwd.type === 'password') { pwd.type = 'text'; icon.className = 'bi bi-eye-slash'; }
+        else { pwd.type = 'password'; icon.className = 'bi bi-eye'; }
+    });
+
+    document.getElementById('loginForm').addEventListener('submit', function (e) {
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+        if (!email || !password) { e.preventDefault(); alert('Please fill in all fields.'); }
+    });
+</script>
+{% endblock %}

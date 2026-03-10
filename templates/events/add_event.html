@@ -1,0 +1,260 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Edit' if event else 'Add' }} Event – EMS{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">
+            <i class="bi bi-{{ 'pencil-square' if event else 'plus-circle' }} me-2"></i>
+            {{ 'Edit Event' if event else 'Add New Event' }}
+        </h1>
+    </div>
+    <a href="{{ url_for('events.list_events') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i>Back
+    </a>
+</div>
+
+<form method="POST"
+    action="{{ url_for('events.edit_event', event_id=event.id) if event else url_for('events.add_event') }}"
+    id="eventForm" novalidate>
+
+    <div class="row g-4">
+        <!-- Left Column -->
+        <div class="col-lg-8">
+
+            <!-- Event Details Card -->
+            <div class="card-panel mb-4">
+                <h5 class="panel-title mb-3"><i class="bi bi-info-circle me-2"></i>Event Details</h5>
+                <div class="row g-3">
+                    <div class="col-md-8">
+                        <label class="form-label fw-semibold">Event Name <span class="text-danger">*</span></label>
+                        <input type="text" name="name" class="form-control" required
+                            value="{{ event.name if event else '' }}" placeholder="e.g. Smith Wedding Reception" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Event Type <span class="text-danger">*</span></label>
+                        <select name="event_type" class="form-select" required>
+                            <option value="">Select type…</option>
+                            {% for et in event_types %}
+                            <option value="{{ et }}" {{ 'selected' if event and event.event_type==et else '' }}>{{ et }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Date <span class="text-danger">*</span></label>
+                        <input type="date" name="event_date" class="form-control" required
+                            value="{{ event.event_date.strftime('%Y-%m-%d') if event else '' }}" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Time</label>
+                        <input type="time" name="event_time" class="form-control"
+                            value="{{ event.event_time.strftime('%H:%M') if event and event.event_time else '' }}" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Status</label>
+                        <select name="status" class="form-select">
+                            {% for s in ['confirmed', 'pending', 'cancelled'] %}
+                            <option value="{{ s }}" {{ 'selected' if event and event.status==s else '' }}>
+                                {{ s.capitalize() }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label fw-semibold">Venue <span class="text-danger">*</span></label>
+                        <input type="text" name="venue" class="form-control" required
+                            value="{{ event.venue if event else '' }}" placeholder="Venue name and address" />
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label fw-semibold">Notes</label>
+                        <textarea name="notes" class="form-control" rows="3"
+                            placeholder="Any special requirements or notes…">{{ event.notes if event else '' }}</textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Flower Items Card -->
+            <div class="card-panel mb-4">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <h5 class="panel-title"><i class="bi bi-flower1 me-2"></i>Flower Arrangements</h5>
+                    <button type="button" class="btn btn-outline-primary btn-sm" id="addFlowerRow">
+                        <i class="bi bi-plus-circle me-1"></i>Add Row
+                    </button>
+                </div>
+                <div id="flowerContainer">
+                    {% set flowers = event.flower_items if event else [] %}
+                    {% if flowers %}
+                    {% for f in flowers %}
+                    <div class="flower-row row g-2 mb-2 align-items-center">
+                        <div class="col-md-4">
+                            <input type="text" name="flower_type[]" class="form-control"
+                                placeholder="Flower type (e.g. Rose)" value="{{ f.type }}" />
+                        </div>
+                        <div class="col-md-3">
+                            <div class="input-group">
+                                <input type="number" name="flower_qty[]" class="form-control" placeholder="Qty" min="0"
+                                    value="{{ f.get('qty',0) }}" />
+                                <span class="input-group-text">pcs</span>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="input-group">
+                                <span class="input-group-text">₹</span>
+                                <input type="number" name="flower_price[]" class="form-control" placeholder="Unit price"
+                                    min="0" step="0.01" value="{{ f.get('price',0) }}" />
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <button type="button" class="btn btn-outline-danger btn-sm remove-flower">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <div class="flower-row row g-2 mb-2 align-items-center">
+                        <div class="col-md-4">
+                            <input type="text" name="flower_type[]" class="form-control"
+                                placeholder="Flower type (e.g. Rose)" />
+                        </div>
+                        <div class="col-md-3">
+                            <div class="input-group">
+                                <input type="number" name="flower_qty[]" class="form-control" placeholder="Qty" min="0"
+                                    value="0" />
+                                <span class="input-group-text">pcs</span>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="input-group">
+                                <span class="input-group-text">₹</span>
+                                <input type="number" name="flower_price[]" class="form-control" placeholder="Unit price"
+                                    min="0" step="0.01" value="0" />
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <button type="button" class="btn btn-outline-danger btn-sm remove-flower">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Inventory Usage Card -->
+            <div class="card-panel mb-4">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <h5 class="panel-title"><i class="bi bi-box-seam me-2"></i>Inventory Usage</h5>
+                    <button type="button" class="btn btn-outline-primary btn-sm" id="addInvRow">
+                        <i class="bi bi-plus-circle me-1"></i>Add Item
+                    </button>
+                </div>
+
+
+
+
+                <div id="invContainer">
+                    {% if event and event.inventory_usages %}
+                    {% for u in event.inventory_usages %}
+                    <div class="inv-row row g-2 mb-2 align-items-center">
+                        <div class="col-md-7">
+                            <select name="inv_item_id[]" class="form-select inv-item-select">
+                                <option value="">Select inventory item…</option>
+                                {% for item in inventory_items %}
+                                <option value="{{ item.id }}" data-price="{{ item.price_per_unit }}"
+                                    data-unit="{{ item.unit }}" {% if item.id==u.item_id %}selected{% endif %}>
+                                    {{ item.name }} ({{ item.quantity }} {{ item.unit }} @ ₹{{ item.price_per_unit }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="input-group">
+                                <input type="number" name="inv_quantity[]" class="form-control inv-qty"
+                                    placeholder="Qty" min="0" step="0.01" value="{{ u.quantity_used }}" />
+                                <span class="input-group-text inv-unit">{{ u.item.unit if u.item else 'pcs' }}</span>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <button type="button" class="btn btn-outline-danger btn-sm remove-inv">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <div class="inv-row row g-2 mb-2 align-items-center">
+                        <div class="col-md-7">
+                            <select name="inv_item_id[]" class="form-select inv-item-select">
+                                <option value="">Select inventory item…</option>
+                                {% for item in inventory_items %}
+                                <option value="{{ item.id }}" data-price="{{ item.price_per_unit }}"
+                                    data-unit="{{ item.unit }}">
+                                    {{ item.name }} ({{ item.quantity }} {{ item.unit }} @ ₹{{ item.price_per_unit }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="input-group">
+                                <input type="number" name="inv_quantity[]" class="form-control inv-qty"
+                                    placeholder="Qty" min="0" step="0.01" value="0" />
+                                <span class="input-group-text inv-unit">pcs</span>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <button type="button" class="btn btn-outline-danger btn-sm remove-inv">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Right Column: Client Info -->
+        <div class="col-lg-4">
+            <div class="card-panel sticky-top" style="top:80px">
+                <h5 class="panel-title mb-3"><i class="bi bi-person-lines-fill me-2"></i>Client Information</h5>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Client Name <span class="text-danger">*</span></label>
+                    <input type="text" name="client_name" class="form-control" required
+                        value="{{ event.client_name if event else '' }}" placeholder="Full name" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Client Email</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                        <input type="email" name="client_email" class="form-control"
+                            value="{{ event.client_email if event else '' }}" placeholder="client@email.com" />
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <label class="form-label fw-semibold">Phone Number</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-telephone"></i></span>
+                        <input type="tel" name="client_phone" class="form-control"
+                            value="{{ event.client_phone if event else '' }}" placeholder="+91 98765 43210" />
+                    </div>
+                </div>
+
+                <hr />
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="bi bi-{{ 'check-circle' if event else 'plus-circle' }} me-2"></i>
+                        {{ 'Update Event' if event else 'Create Event' }}
+                    </button>
+                    <a href="{{ url_for('events.list_events') }}" class="btn btn-outline-secondary">Cancel</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/events.js') }}"></script>
+{% endblock %}

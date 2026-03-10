@@ -1,0 +1,164 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard – EMS{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title"><i class="bi bi-grid-1x2-fill me-2"></i>Dashboard</h1>
+        <p class="page-subtitle">{{ today.strftime('%A, %d %B %Y') }}</p>
+    </div>
+    <a href="{{ url_for('events.add_event') }}" class="btn btn-primary">
+        <i class="bi bi-plus-circle me-2"></i>New Event
+    </a>
+</div>
+
+<!-- Stats Cards -->
+<div class="row g-4 mb-4">
+    <div class="col-sm-6 col-xl-3">
+        <div class="stat-card stat-purple">
+            <div class="stat-icon"><i class="bi bi-calendar3"></i></div>
+            <div class="stat-body">
+                <div class="stat-value">{{ upcoming_events|length }}</div>
+                <div class="stat-label">Upcoming Events</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="stat-card stat-green">
+            <div class="stat-icon"><i class="bi bi-currency-rupee"></i></div>
+            <div class="stat-body">
+                <div class="stat-value">₹{{ "{:,.0f}".format(total_revenue) }}</div>
+                <div class="stat-label">Total Revenue</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="stat-card stat-orange">
+            <div class="stat-icon"><i class="bi bi-exclamation-triangle"></i></div>
+            <div class="stat-body">
+                <div class="stat-value">{{ low_stock|length }}</div>
+                <div class="stat-label">Low Stock Alerts</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="stat-card stat-blue">
+            <div class="stat-icon"><i class="bi bi-box-seam"></i></div>
+            <div class="stat-body">
+                <div class="stat-value">{{ total_inventory }}</div>
+                <div class="stat-label">Inventory Items</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Upcoming Events -->
+    <div class="col-lg-8">
+        <div class="card-panel">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+                <h5 class="panel-title"><i class="bi bi-calendar-event me-2"></i>Upcoming Events</h5>
+                <a href="{{ url_for('events.list_events') }}" class="btn btn-outline-primary btn-sm">View All</a>
+            </div>
+            {% if upcoming_events %}
+            <div class="table-responsive">
+                <table class="table table-hover ems-table">
+                    <thead>
+                        <tr>
+                            <th>Event</th>
+                            <th>Type</th>
+                            <th>Date</th>
+                            <th>Venue</th>
+                            <th>Client</th>
+                            <th>Status</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for event in upcoming_events %}
+                        <tr>
+                            <td><strong>{{ event.name }}</strong></td>
+                            <td><span class="badge badge-type">{{ event.event_type }}</span></td>
+                            <td><i class="bi bi-calendar3 me-1 text-muted"></i>{{ event.event_date.strftime('%d %b %Y')
+                                }}</td>
+                            <td class="text-truncate" style="max-width:150px">{{ event.venue }}</td>
+                            <td>{{ event.client_name }}</td>
+                            <td>
+                                <span
+                                    class="badge {% if event.status == 'confirmed' %}bg-success{% elif event.status == 'pending' %}bg-warning text-dark{% else %}bg-danger{% endif %}">
+                                    {{ event.status }}
+                                </span>
+                            </td>
+                            <td>
+                                <a href="{{ url_for('events.view_event', event_id=event.id) }}"
+                                    class="btn btn-sm btn-ghost">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="bi bi-calendar-x"></i>
+                <p>No upcoming events found.</p>
+                <a href="{{ url_for('events.add_event') }}" class="btn btn-primary btn-sm">Add First Event</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Right column -->
+    <div class="col-lg-4">
+        <!-- Today's Events -->
+        <div class="card-panel mb-4">
+            <h5 class="panel-title mb-3"><i class="bi bi-calendar-check me-2"></i>Today's Events</h5>
+            {% if todays_events %}
+            {% for ev in todays_events %}
+            <div class="today-event-item">
+                <div class="d-flex justify-content-between">
+                    <strong>{{ ev.name }}</strong>
+                    <span class="badge badge-type">{{ ev.event_type }}</span>
+                </div>
+                <small class="text-muted"><i class="bi bi-geo-alt me-1"></i>{{ ev.venue }}</small>
+            </div>
+            {% endfor %}
+            {% else %}
+            <p class="text-muted small text-center py-3">No events today</p>
+            {% endif %}
+        </div>
+
+        <!-- Low Stock Alerts -->
+        <div class="card-panel">
+            <h5 class="panel-title mb-3"><i class="bi bi-exclamation-triangle me-2 text-warning"></i>Low Stock Alerts
+            </h5>
+            {% if low_stock %}
+            {% for item in low_stock %}
+            <div class="stock-alert-item">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>{{ item.name }}</strong>
+                        <small class="text-muted d-block">{{ item.category or 'Uncategorized' }}</small>
+                    </div>
+                    <div class="text-end">
+                        <span class="badge bg-danger">{{ item.quantity }} {{ item.unit }}</span>
+                        <small class="text-muted d-block">min: {{ item.low_stock_threshold }}</small>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            <a href="{{ url_for('inventory.list_inventory') }}" class="btn btn-outline-warning btn-sm w-100 mt-2">
+                Manage Inventory
+            </a>
+            {% else %}
+            <div class="text-center py-3">
+                <i class="bi bi-check-circle text-success fs-4"></i>
+                <p class="text-muted small mt-1">All stock levels OK</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

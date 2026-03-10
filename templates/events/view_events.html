@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+{% block title %}Events – EMS{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title"><i class="bi bi-calendar3 me-2"></i>All Events</h1>
+        <p class="page-subtitle">{{ events|length }} event(s) found</p>
+    </div>
+    <a href="{{ url_for('events.add_event') }}" class="btn btn-primary">
+        <i class="bi bi-plus-circle me-2"></i>Add Event
+    </a>
+</div>
+
+<!-- Filters -->
+<div class="card-panel mb-4">
+    <form method="GET" action="{{ url_for('events.list_events') }}" class="row g-3 align-items-end">
+        <div class="col-md-3">
+            <label class="form-label small fw-semibold">Search</label>
+            <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="text" name="q" class="form-control" placeholder="Name, client, venue…" value="{{ q }}" />
+            </div>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label small fw-semibold">Type</label>
+            <select name="type" class="form-select">
+                <option value="">All Types</option>
+                {% for et in event_types %}
+                <option value="{{ et }}" {% if et==etype %}selected{% endif %}>{{ et }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label small fw-semibold">From Date</label>
+            <input type="date" name="date_from" class="form-control" value="{{ date_from }}" />
+        </div>
+        <div class="col-md-2">
+            <label class="form-label small fw-semibold">To Date</label>
+            <input type="date" name="date_to" class="form-control" value="{{ date_to }}" />
+        </div>
+        <div class="col-auto">
+            <button type="submit" class="btn btn-primary"><i class="bi bi-funnel me-1"></i>Filter</button>
+            <a href="{{ url_for('events.list_events') }}" class="btn btn-outline-secondary ms-1">
+                <i class="bi bi-x-circle"></i>
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- Events Table -->
+<div class="card-panel">
+    {% if events %}
+    <div class="table-responsive">
+        <table class="table table-hover ems-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Event Name</th>
+                    <th>Type</th>
+                    <th>Date & Time</th>
+                    <th>Venue</th>
+                    <th>Client</th>
+                    <th>Status</th>
+                    <th>Amount</th>
+                    <th class="text-center">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for event in events %}
+                <tr>
+                    <td class="text-muted small">{{ event.id }}</td>
+                    <td><strong>{{ event.name }}</strong></td>
+                    <td><span class="badge badge-type">{{ event.event_type }}</span></td>
+                    <td>
+                        <i class="bi bi-calendar3 me-1 text-muted"></i>{{ event.event_date.strftime('%d %b %Y') }}
+                        {% if event.event_time %}
+                        <br /><small class="text-muted"><i class="bi bi-clock me-1"></i>{{
+                            event.event_time.strftime('%I:%M %p') }}</small>
+                        {% endif %}
+                    </td>
+                    <td class="text-truncate" style="max-width:170px">{{ event.venue }}</td>
+                    <td>
+                        <strong>{{ event.client_name }}</strong>
+                        {% if event.client_phone %}
+                        <br /><small class="text-muted">{{ event.client_phone }}</small>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span
+                            class="badge {% if event.status == 'confirmed' %}bg-success{% elif event.status == 'pending' %}bg-warning text-dark{% else %}bg-danger{% endif %}">
+                            {{ event.status }}
+                        </span>
+                    </td>
+                    <td class="fw-semibold">₹{{ "{:,.0f}".format(event.grand_total()) }}</td>
+                    <td>
+                        <div class="d-flex gap-1 justify-content-center">
+                            <a href="{{ url_for('events.view_event', event_id=event.id) }}"
+                                class="btn btn-sm btn-outline-primary" title="View">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            <a href="{{ url_for('events.edit_event', event_id=event.id) }}"
+                                class="btn btn-sm btn-outline-secondary" title="Edit">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <a href="{{ url_for('quotation.generate', event_id=event.id) }}"
+                                class="btn btn-sm btn-outline-success" title="Generate Quotation">
+                                <i class="bi bi-file-earmark-pdf"></i>
+                            </a>
+                            {% if current_user.is_admin() %}
+                            <form method="POST" action="{{ url_for('events.delete_event', event_id=event.id) }}"
+                                onsubmit="return confirm('Delete this event? This cannot be undone.')">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-calendar-x"></i>
+        <p>No events found matching your criteria.</p>
+        <a href="{{ url_for('events.add_event') }}" class="btn btn-primary btn-sm">Add First Event</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

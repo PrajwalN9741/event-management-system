@@ -1,0 +1,154 @@
+{% extends 'base.html' %}
+{% block title %}{{ event.name }} – EMS{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">{{ event.name }}</h1>
+        <span
+            class="badge {% if event.status == 'confirmed' %}bg-success{% elif event.status == 'pending' %}bg-warning text-dark{% else %}bg-danger{% endif %} fs-6">
+            {{ event.status }}
+        </span>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('events.edit_event', event_id=event.id) }}" class="btn btn-outline-secondary">
+            <i class="bi bi-pencil me-1"></i>Edit
+        </a>
+        <a href="{{ url_for('quotation.generate', event_id=event.id) }}" class="btn btn-primary">
+            <i class="bi bi-file-earmark-pdf me-1"></i>Generate Quotation
+        </a>
+        <a href="{{ url_for('events.list_events') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Back
+        </a>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <!-- Event Details -->
+        <div class="card-panel mb-4">
+            <h5 class="panel-title mb-3"><i class="bi bi-info-circle me-2"></i>Event Details</h5>
+            <dl class="row">
+                <dt class="col-sm-3 text-muted">Type</dt>
+                <dd class="col-sm-9"><span class="badge badge-type">{{ event.event_type }}</span></dd>
+                <dt class="col-sm-3 text-muted">Date</dt>
+                <dd class="col-sm-9">{{ event.event_date.strftime('%A, %d %B %Y') }}</dd>
+                <dt class="col-sm-3 text-muted">Time</dt>
+                <dd class="col-sm-9">{{ event.event_time.strftime('%I:%M %p') if event.event_time else 'TBD' }}</dd>
+                <dt class="col-sm-3 text-muted">Venue</dt>
+                <dd class="col-sm-9">{{ event.venue }}</dd>
+                {% if event.notes %}
+                <dt class="col-sm-3 text-muted">Notes</dt>
+                <dd class="col-sm-9">{{ event.notes }}</dd>
+                {% endif %}
+            </dl>
+        </div>
+
+        <!-- Flower Items -->
+        {% if event.flower_items %}
+        <div class="card-panel mb-4">
+            <h5 class="panel-title mb-3"><i class="bi bi-flower1 me-2"></i>Flower Arrangements</h5>
+            <table class="table ems-table">
+                <thead>
+                    <tr>
+                        <th>Type</th>
+                        <th>Qty</th>
+                        <th>Unit Price</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for f in event.flower_items %}
+                    <tr>
+                        <td>{{ f.type }}</td>
+                        <td>{{ f.qty }}</td>
+                        <td>₹{{ "%.2f"|format(f.price|float) }}</td>
+                        <td>₹{{ "%.2f"|format(f.qty|float * f.price|float) }}</td>
+                    </tr>
+                    {% endfor %}
+                    <tr class="table-light fw-bold">
+                        <td colspan="3" class="text-end">Flower Total:</td>
+                        <td>₹{{ "%.2f"|format(event.flower_total()) }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+
+        <!-- Inventory Used -->
+        {% if event.inventory_usages %}
+        <div class="card-panel mb-4">
+            <h5 class="panel-title mb-3"><i class="bi bi-box-seam me-2"></i>Inventory Used</h5>
+            <table class="table ems-table">
+                <thead>
+                    <tr>
+                        <th>Item</th>
+                        <th>Category</th>
+                        <th>Qty Used</th>
+                        <th>Unit Price</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in event.inventory_usages %}
+                    <tr>
+                        <td>{{ u.item.name }}</td>
+                        <td>{{ u.item.category or '—' }}</td>
+                        <td>{{ u.quantity_used }} {{ u.item.unit }}</td>
+                        <td>₹{{ "%.2f"|format(u.item.price_per_unit) }}</td>
+                        <td>₹{{ "%.2f"|format(u.quantity_used * u.item.price_per_unit) }}</td>
+                    </tr>
+                    {% endfor %}
+                    <tr class="table-light fw-bold">
+                        <td colspan="4" class="text-end">Inventory Total:</td>
+                        <td>₹{{ "%.2f"|format(event.inventory_total()) }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Right: Client info + totals -->
+    <div class="col-lg-4">
+        <div class="card-panel mb-4">
+            <h5 class="panel-title mb-3"><i class="bi bi-person-lines-fill me-2"></i>Client Information</h5>
+            <p class="mb-1"><strong>{{ event.client_name }}</strong></p>
+            {% if event.client_email %}
+            <p class="mb-1"><i class="bi bi-envelope me-1 text-muted"></i>{{ event.client_email }}</p>
+            {% endif %}
+            {% if event.client_phone %}
+            <p class="mb-1"><i class="bi bi-telephone me-1 text-muted"></i>{{ event.client_phone }}</p>
+            {% endif %}
+        </div>
+
+        <div class="card-panel">
+            <h5 class="panel-title mb-3"><i class="bi bi-receipt me-2"></i>Financial Summary</h5>
+            <div class="d-flex justify-content-between mb-2">
+                <span class="text-muted">Flower Total</span>
+                <strong>₹{{ "%.2f"|format(event.flower_total()) }}</strong>
+            </div>
+            <div class="d-flex justify-content-between mb-3">
+                <span class="text-muted">Inventory Total</span>
+                <strong>₹{{ "%.2f"|format(event.inventory_total()) }}</strong>
+            </div>
+            <hr />
+            <div class="d-flex justify-content-between align-items-center">
+                <span class="fw-bold fs-5">Grand Total</span>
+                <span class="fw-bold fs-4 text-primary">₹{{ "{:,.2f}".format(event.grand_total()) }}</span>
+            </div>
+            <div class="d-grid gap-2 mt-4">
+                <a href="{{ url_for('quotation.generate', event_id=event.id) }}" class="btn btn-primary">
+                    <i class="bi bi-file-earmark-pdf me-2"></i>Generate / View Quotation
+                </a>
+                <form method="POST" action="{{ url_for('quotation.email_quotation', event_id=event.id) }}">
+                    <input type="hidden" name="recipient_email" value="{{ event.client_email or '' }}">
+                    <button type="submit" class="btn btn-outline-primary w-100" {% if not event.client_email %}disabled title="Add client email to enable"{% endif %}>
+                        <i class="bi bi-envelope-at me-2"></i>Email to Client
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

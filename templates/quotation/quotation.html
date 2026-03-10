@@ -1,0 +1,250 @@
+{% extends 'base.html' %}
+{% block title %}Quotation – {{ event.name }} – EMS{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title"><i class="bi bi-file-earmark-pdf me-2"></i>Quotation</h1>
+        <p class="page-subtitle">{{ event.name }}</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('events.view_event', event_id=event.id) }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Back to Event
+        </a>
+    </div>
+</div>
+
+<!-- Action bar -->
+<div class="card-panel mb-4">
+    <div class="d-flex flex-wrap gap-3 align-items-center">
+        <a href="{{ url_for('quotation.generate', event_id=event.id) }}" class="btn btn-primary">
+            <i class="bi bi-arrow-repeat me-2"></i>Regenerate PDF
+        </a>
+        {% if quotation %}
+        <a href="{{ url_for('quotation.download', event_id=event.id) }}" class="btn btn-success">
+            <i class="bi bi-download me-2"></i>Download PDF
+        </a>
+        <button class="btn btn-outline-secondary" onclick="window.print()">
+            <i class="bi bi-printer me-2"></i>Print
+        </button>
+        {% endif %}
+        <!-- Email form -->
+        <form method="POST" action="{{ url_for('quotation.email_quotation', event_id=event.id) }}"
+            class="d-flex gap-2 align-items-center ms-auto" id="emailForm">
+            <div class="input-group" style="min-width:260px">
+                <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                <input type="email" name="recipient_email" class="form-control" value="{{ event.client_email or '' }}"
+                    placeholder="recipient@email.com" required />
+            </div>
+            <button type="submit" class="btn btn-outline-primary">
+                <i class="bi bi-send me-1"></i>Email
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- Quotation Preview -->
+<div class="card-panel quotation-preview" id="printArea">
+    <!-- Header -->
+    <!-- MNNMP Events Company Header (Text Only) -->
+    <div class="quot-header mb-4 text-center">
+        <p class="text-muted small fst-italic mb-1">||Sri Seeti Byraveshwara Swamy Prasana||</p>
+        <h2 class="quot-company" style="color: blue; font-weight: bold; font-size: 2.2rem; margin-bottom: 0.2rem;">MNNMP
+            EVENTS</h2>
+        <p class="text-muted small mb-2" style="color: blue; font-size: 1.1rem;">Amitiganahalli, Chintamani(T)
+            Chikkabalapur(D)</p>
+        <div class="d-flex justify-content-between px-4 small fw-bold"
+            style="color: #00bcd4; border-top: 1px solid #eee; padding-top: 0.5rem;">
+            <span>Prop:- Mithun K</span><span>Mob:- 9141840705</span>
+        </div>
+    </div>
+    <hr />
+
+    <!-- Meta -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h3 class="fw-bold text-primary">QUOTATION</h3>
+            {% if quotation %}
+            <p class="text-muted small mb-1">Generated: {{ quotation.generated_at.strftime('%d %B %Y, %I:%M %p') }}</p>
+            {% endif %}
+        </div>
+        <div class="col-md-6 text-md-end">
+            <span
+                class="badge {% if event.status == 'confirmed' %}bg-success{% elif event.status == 'pending' %}bg-warning text-dark{% else %}bg-danger{% endif %} fs-6 mb-2">
+                {{ event.status.upper() }}
+            </span>
+        </div>
+    </div>
+
+    <!-- Event + Client info row -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-6">
+            <div class="info-block">
+                <h6 class="info-title"><i class="bi bi-calendar3 me-2"></i>Event Information</h6>
+                <table class="table table-sm table-borderless mb-0">
+                    <tr>
+                        <th class="text-muted fw-normal" width="120">Name</th>
+                        <td>{{ event.name }}</td>
+                    </tr>
+                    <tr>
+                        <th class="text-muted fw-normal">Type</th>
+                        <td>{{ event.event_type }}</td>
+                    </tr>
+                    <tr>
+                        <th class="text-muted fw-normal">Date</th>
+                        <td>{{ event.event_date.strftime('%d %B %Y') }}</td>
+                    </tr>
+                    <tr>
+                        <th class="text-muted fw-normal">Time</th>
+                        <td>{{ event.event_time.strftime('%I:%M %p') if event.event_time else 'TBD' }}</td>
+                    </tr>
+                    <tr>
+                        <th class="text-muted fw-normal">Venue</th>
+                        <td>{{ event.venue }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="info-block">
+                <h6 class="info-title"><i class="bi bi-person me-2"></i>Client Information</h6>
+                <table class="table table-sm table-borderless mb-0">
+                    <tr>
+                        <th class="text-muted fw-normal" width="80">Name</th>
+                        <td><strong>{{ event.client_name }}</strong></td>
+                    </tr>
+                    <tr>
+                        <th class="text-muted fw-normal">Email</th>
+                        <td>{{ event.client_email or '—' }}</td>
+                    </tr>
+                    <tr>
+                        <th class="text-muted fw-normal">Phone</th>
+                        <td>{{ event.client_phone or '—' }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Flower Items -->
+    {% if event.flower_items %}
+    <h6 class="section-heading"><i class="bi bi-flower1 me-2"></i>Flower Arrangements</h6>
+    <div class="table-responsive mb-4">
+        <table class="table ems-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Flower Type</th>
+                    <th>Qty</th>
+                    <th>Unit Price</th>
+                    <th class="text-end">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for f in event.flower_items %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ f.get('type','') }}</td>
+                    <td>{{ f.get('qty',0) }}</td>
+                    <td>₹{{ "%.2f"|format(f.get('price',0)|float) }}</td>
+                    <td class="text-end fw-semibold">₹{{ "%.2f"|format(f.get('qty',0)|float * f.get('price',0)|float) }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    <!-- Inventory Items -->
+    {% if event.inventory_usages %}
+    <h6 class="section-heading"><i class="bi bi-box-seam me-2"></i>Inventory & Equipment</h6>
+    <div class="table-responsive mb-4">
+        <table class="table ems-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Item</th>
+                    <th>Category</th>
+                    <th>Qty</th>
+                    <th>Unit Price</th>
+                    <th class="text-end">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in event.inventory_usages %}
+                {% if u.item %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ u.item.name }}</td>
+                    <td>{{ u.item.category or '—' }}</td>
+                    <td>{{ u.quantity_used }} {{ u.item.unit }}</td>
+                    <td>₹{{ "%.2f"|format(u.item.price_per_unit) }}</td>
+                    <td class="text-end fw-semibold">₹{{ "%.2f"|format(u.quantity_used * u.item.price_per_unit) }}</td>
+                </tr>
+                {% endif %}
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    <!-- Totals -->
+    <div class="row justify-content-end">
+        <div class="col-md-4">
+            <table class="table table-borderless mb-0">
+                <tr>
+                    <td class="text-muted">Flower Total</td>
+                    <td class="text-end fw-semibold">₹{{ "%.2f"|format(event.flower_total()) }}</td>
+                </tr>
+                <tr>
+                    <td class="text-muted">Inventory Total</td>
+                    <td class="text-end fw-semibold">₹{{ "%.2f"|format(event.inventory_total()) }}</td>
+                </tr>
+                <tr class="grand-total-row">
+                    <td class="fw-bold fs-5">GRAND TOTAL</td>
+                    <td class="text-end fw-bold fs-4 text-primary">₹{{ "{:,.2f}".format(event.grand_total()) }}</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    {% if event.notes %}
+    <div class="mt-4 p-3" style="background:#f8f9fa;border-radius:8px;border-left:4px solid var(--ems-purple)">
+        <strong>Notes:</strong> {{ event.notes }}
+    </div>
+    {% endif %}
+
+    <!-- Signatures -->
+    <div class="row mt-5 pt-4 mb-4">
+        <div class="col-6 text-center">
+            <div style="border-top: 1.5px solid #1e1b4b; width: 70%; margin: 0 auto;"></div>
+            <p class="small fw-bold mt-2 mb-0">Client Signature</p>
+            <p class="small text-muted mb-1">{{ event.client_name }}</p>
+            <p class="small text-muted">Date: _______________</p>
+        </div>
+        <div class="col-6 text-center">
+            <div style="border-top: 1.5px solid #1e1b4b; width: 70%; margin: 0 auto;"></div>
+            <p class="small fw-bold mt-2 mb-0">Authorised Signatory</p>
+            <p class="small text-muted mb-1">MNNMP EVENTS</p>
+            <p class="small text-muted">Prop:- Mithun K</p>
+        </div>
+    </div>
+
+    <!-- Terms -->
+
+    <hr class="mt-4" />
+    <p class="text-muted small text-center">
+        <strong>Terms & Conditions:</strong> 50% advance required to confirm booking.
+        Cancellation within 7 days is non-refundable. Valid for 30 days.
+    </p>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Add enumerate to Jinja via template — handled server side
+    // This is a fallback note: enumerate is not default in Jinja2
+    // The template uses loop.index naturally via for loop
+</script>
+{% endblock %}

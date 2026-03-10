@@ -1,0 +1,77 @@
+import os
+from flask import Flask
+from dotenv import load_dotenv
+from extensions import db, login_manager, mail
+
+load_dotenv()
+
+
+def create_app():
+    app = Flask(__name__)
+
+    # ── Configuration ──────────────────────────────────────────────────────────
+    app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'change-me')
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+    # Mail (Gmail SMTP via App Password)
+    app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER', 'smtp.gmail.com')
+    app.config['MAIL_PORT'] = int(os.getenv('MAIL_PORT', 587))
+    app.config['MAIL_USE_TLS'] = os.getenv('MAIL_USE_TLS', 'True') == 'True'
+    app.config['MAIL_USE_SSL'] = False
+    app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME', '')
+    # Strip spaces from Gmail App Password (spaces are display-only, not part of the password)
+    app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD', '').replace(' ', '')
+    app.config['MAIL_DEFAULT_SENDER'] = (
+        'EMS Events', os.getenv('MAIL_DEFAULT_SENDER', os.getenv('MAIL_USERNAME', ''))
+    )
+
+
+    # ── Extensions ─────────────────────────────────────────────────────────────
+    db.init_app(app)
+    login_manager.init_app(app)
+    mail.init_app(app)
+
+    login_manager.login_view = 'auth.login'
+    login_manager.login_message_category = 'info'
+
+    # ── Blueprints ─────────────────────────────────────────────────────────────
+    from routes.auth import auth_bp
+    from routes.dashboard import dashboard_bp
+    from routes.events import events_bp
+    from routes.inventory import inventory_bp
+    from routes.quotation import quotation_bp
+
+    app.register_blueprint(auth_bp)
+    app.register_blueprint(dashboard_bp)
+    app.register_blueprint(events_bp)
+    app.register_blueprint(inventory_bp)
+    app.register_blueprint(quotation_bp)
+
+    # ── Database init ──────────────────────────────────────────────────────────
+    with app.app_context():
+        db.create_all()
+        _seed_admin()
+
+    return app
+
+
+def _seed_admin():
+    """Create a default admin account if no users exist."""
+    from models import User
+    from werkzeug.security import generate_password_hash
+    if not User.query.first():
+        admin = User(
+            username='admin',
+            email='admin@ems.local',
+            password_hash=generate_password_hash('Admin@123'),
+            role='admin'
+        )
+        db.session.add(admin)
+        db.session.commit()
+
+
+app = create_app()
+
+if __name__ == '__main__':
+    app.run(debug=True)
