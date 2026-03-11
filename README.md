@@ -75,6 +75,9 @@ The app will be available at: `http://localhost:5000`
 
 To deploy MNNMP Events on **Render**, follow these steps:
 
+> [!IMPORTANT]
+> When creating a new service on Render, you MUST select **"Web Service"**. Do NOT select "Static Site", or the deployment will fail with a "Publish directory" error.
+
 ### 1. Connect Repository
 - Create a new **Web Service** on Render and connect your GitHub repository.
 

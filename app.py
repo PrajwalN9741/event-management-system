@@ -11,7 +11,15 @@ def create_app():
 
     # ── Configuration ──────────────────────────────────────────────────────────
     app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'change-me')
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
+    
+    # Ensure instance folder exists for persistent SQLite on Render
+    instance_path = os.path.join(app.root_path, 'instance')
+    if not os.path.exists(instance_path):
+        os.makedirs(instance_path)
+    
+    # Use absolute path for the database to avoid any ambiguity
+    db_path = os.path.join(instance_path, 'database.db')
+    app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
     # Mail (Gmail SMTP via App Password)
@@ -60,15 +68,18 @@ def _seed_admin():
     """Create a default admin account if no users exist."""
     from models import User
     from werkzeug.security import generate_password_hash
-    if not User.query.first():
-        admin = User(
-            username='admin',
-            email='admin@ems.local',
-            password_hash=generate_password_hash('Admin@123'),
-            role='admin'
-        )
-        db.session.add(admin)
-        db.session.commit()
+    try:
+        if not User.query.first():
+            admin = User(
+                username='admin',
+                email='admin@ems.local',
+                password_hash=generate_password_hash('Admin@123'),
+                role='admin'
+            )
+            db.session.add(admin)
+            db.session.commit()
+    except Exception:
+        db.session.rollback()
 
 
 app = create_app()
