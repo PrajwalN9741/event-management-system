@@ -13,18 +13,25 @@ def create_app():
     app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'change-me')
     
     # Ensure instance folder exists for persistent SQLite on Render
-    instance_path = os.path.join(app.root_path, 'instance')
-    if not os.path.exists(instance_path):
-        os.makedirs(instance_path)
+    # Using Flask's native instance_path
+    if not os.path.exists(app.instance_path):
+        try:
+            os.makedirs(app.instance_path)
+        except Exception as e:
+            app.logger.error(f"Failed to create instance directory: {e}")
     
     # Use absolute path for the database to avoid any ambiguity
-    db_path = os.path.join(instance_path, 'database.db')
+    db_path = os.path.join(app.instance_path, 'database.db')
     app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
     # Mail (Gmail SMTP via App Password)
     app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER', 'smtp.gmail.com')
-    app.config['MAIL_PORT'] = int(os.getenv('MAIL_PORT', 587))
+    try:
+        app.config['MAIL_PORT'] = int(os.getenv('MAIL_PORT', 587))
+    except (ValueError, TypeError):
+        app.config['MAIL_PORT'] = 587
+        
     app.config['MAIL_USE_TLS'] = os.getenv('MAIL_USE_TLS', 'True') == 'True'
     app.config['MAIL_USE_SSL'] = False
     app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME', '')
@@ -33,6 +40,8 @@ def create_app():
     app.config['MAIL_DEFAULT_SENDER'] = (
         'EMS Events', os.getenv('MAIL_DEFAULT_SENDER', os.getenv('MAIL_USERNAME', ''))
     )
+
+    app.logger.info(f"Mail configured for: {app.config['MAIL_USERNAME']}")
 
 
     # ── Extensions ─────────────────────────────────────────────────────────────
@@ -58,8 +67,18 @@ def create_app():
 
     # ── Database init ──────────────────────────────────────────────────────────
     with app.app_context():
-        db.create_all()
-        _seed_admin()
+        app.logger.info(f"Database URI: {app.config['SQLALCHEMY_DATABASE_URI']}")
+        try:
+            db.create_all()
+            _seed_admin()
+        except Exception as e:
+            app.logger.error(f"Database initialization error: {e}")
+
+    @app.errorhandler(500)
+    def handle_500(e):
+        import traceback
+        app.logger.error(f"Internal Server Error: {e}\n{traceback.format_exc()}")
+        return "Internal Server Error (Detailed logs sent to console)", 500
 
     return app
 
